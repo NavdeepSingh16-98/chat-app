@@ -1,0 +1,101 @@
+*****Client Side Code***********
+
+<!DOCTYPE html>
+<head>
+<title>Chat App using Socket IO and Node Js</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+</head>
+<body>
+    <h1>Chat App using socket.io</h1>
+    <form class="flex flex-col justify-center items-center mt-5" id="form">
+
+        <input type="text" placeholder="Name" id="myName">
+        <input type="text" placeholder="Message" id="message">
+        <button> Send</button>
+    </form>
+    <div id="messageArea"></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket = io();
+        let form = document.getElementById('form');
+        let myName = document.getElementById('myName');
+        let message = document.getElementById('message');
+        let messageArea = document.getElementById('messageArea');
+
+        // debug: log socket connect
+        socket.on('connect', () => console.log('socket connected', socket.id));
+        socket.on('connect_error', (err) => console.error('connect_error', err));
+
+        form.addEventListener('submit',(e)=>{
+            e.preventDefault();
+            if(message.value){
+                console.log('emit name:', myName.value, 'message:', message.value);
+                socket.emit('send name', myName.value);
+                socket.emit('send message', message.value);
+                message.value = '';
+            }
+        });
+
+        // listen for the lowercase events (match what client emits)
+        socket.on('send name',(username)=>{
+            console.log('recv name', username);
+            let name = document.createElement('p');
+            name.textContent = username + " : ";
+            messageArea.appendChild(name);
+        });
+
+        socket.on('send message',(chat)=>{
+            console.log('recv message', chat);
+            let chatContent = document.createElement('p');
+            chatContent.textContent = chat;
+            messageArea.appendChild(chatContent);
+        });
+    </script>
+
+</body>
+</html>
+
+
+
+
+*****Client Side Code***********
+
+
+
+
+*****Server Side Code***********
+
+const express = require('express');
+const app = express();
+const {Server} = require('socket.io');
+const http = require('http');
+const server = http.createServer(app);
+const io = new Server(server);
+const port = 5000;
+app.get('/',(req,res)=>{
+    res.sendFile(__dirname+"/index.html");
+});
+
+io.on('connection',(socket)=>{
+    console.log('a user connected:', socket.id);
+
+    socket.on('send name',(userName)=>{
+        console.log('server recv name:', userName);
+        io.emit('send name',userName);
+    });
+
+    socket.on('send message',(chat)=>{
+        console.log('server recv message:', chat);
+        io.emit('send message',chat);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('user disconnected:', socket.id);
+    });
+});
+
+server.listen(port,()=>{
+    console.log(`server listening on ${port}`)
+});
+
+*****Server Side Code***********
